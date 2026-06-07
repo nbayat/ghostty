@@ -627,7 +627,7 @@ extension Ghostty {
                 setReadonly(app, target: target, v: action.action.readonly)
 
             case GHOSTTY_ACTION_CHECK_FOR_UPDATES:
-                checkForUpdates(app)
+                break
 
             case GHOSTTY_ACTION_OPEN_URL:
                 return openURL(action.action.open_url)
@@ -697,14 +697,6 @@ extension Ghostty {
             // We want to quit, start that process
             NSApplication.shared.terminate(nil)
             #endif
-        }
-
-        private static func checkForUpdates(
-            _ app: ghostty_app_t
-        ) {
-            if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
-                appDelegate.checkForUpdates(nil)
-            }
         }
 
         private static func openURL(

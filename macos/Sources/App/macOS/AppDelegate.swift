@@ -2,7 +2,6 @@ import AppKit
 import SwiftUI
 import UserNotifications
 import OSLog
-import Sparkle
 import GhosttyKit
 
 class AppDelegate: NSObject,
@@ -20,7 +19,6 @@ class AppDelegate: NSObject,
     /// Various menu items so that we can programmatically sync the keyboard shortcut with the Ghostty config
     @IBOutlet private var menuAbout: NSMenuItem?
     @IBOutlet private var menuServices: NSMenu?
-    @IBOutlet private var menuCheckForUpdates: NSMenuItem?
     @IBOutlet private var menuOpenConfig: NSMenuItem?
     @IBOutlet private var menuReloadConfig: NSMenuItem?
     @IBOutlet private var menuSecureInput: NSMenuItem?
@@ -131,12 +129,6 @@ class AppDelegate: NSObject,
         }
     }
 
-    /// Manages updates
-    let updateController = UpdateController()
-    var updateViewModel: UpdateViewModel {
-        updateController.viewModel
-    }
-
     /// The elapsed time since the process was started
     var timeSinceLaunch: TimeInterval {
         return ProcessInfo.processInfo.systemUptime - applicationLaunchTime
@@ -211,9 +203,6 @@ class AppDelegate: NSObject,
 
         // Initial config loading
         ghosttyConfigDidChange(config: ghostty.config)
-
-        // Start our update checker.
-        updateController.startUpdater()
 
         // Register our service provider. This must happen after everything is initialized.
         NSApp.servicesProvider = ServiceProvider()
@@ -365,12 +354,6 @@ class AppDelegate: NSObject,
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         let windows = NSApplication.shared.windows
         if windows.isEmpty { return .terminateNow }
-
-        // If we've already accepted to install an update, then we don't need to
-        // confirm quit. The user is already expecting the update to happen.
-        if updateController.isInstalling {
-            return .terminateNow
-        }
 
         // This probably isn't fully safe. The isEmpty check above is aspirational, it doesn't
         // quite work with SwiftUI because windows are retained on close. So instead we check
@@ -751,28 +734,6 @@ class AppDelegate: NSObject,
         default: UserDefaults.ghostty.removeObject(forKey: "NSQuitAlwaysKeepsWindows")
         }
 
-        // Sync our auto-update settings. If SUEnableAutomaticChecks (in our Info.plist) is
-        // explicitly false (NO), auto-updates are disabled. Otherwise, we use the behavior
-        // defined by our "auto-update" configuration (if set) or fall back to Sparkle
-        // user-based defaults.
-        if Bundle.main.infoDictionary?["SUEnableAutomaticChecks"] as? Bool == false {
-            updateController.updater.automaticallyChecksForUpdates = false
-            updateController.updater.automaticallyDownloadsUpdates = false
-        } else if let autoUpdate = config.autoUpdate {
-            updateController.updater.automaticallyChecksForUpdates =
-                autoUpdate == .check || autoUpdate == .download
-            updateController.updater.automaticallyDownloadsUpdates =
-                autoUpdate == .download
-            /*
-             To test `auto-update` easily, uncomment the line below and
-             delete `SUEnableAutomaticChecks` in Ghostty-Info.plist.
-
-             Note: When `auto-update = download`, you may need to
-             `Clean Build Folder` if a background install has already begun.
-             */
-            // updateController.updater.checkForUpdatesInBackground()
-        }
-
         // Config could change keybindings, so update everything that depends on that
         DispatchQueue.main.async {
             self.syncMenuShortcuts(config)
@@ -933,11 +894,6 @@ class AppDelegate: NSObject,
         ghostty.reloadConfig()
     }
 
-    @IBAction func checkForUpdates(_ sender: Any?) {
-        updateController.checkForUpdates()
-        // UpdateSimulator.happyPath.simulate(with: updateViewModel)
-    }
-
     @IBAction func newWindow(_ sender: Any?) {
         _ = TerminalController.newWindow(ghostty)
     }
@@ -1089,7 +1045,6 @@ extension AppDelegate {
         // Note: This COULD Be done all in the xib file, but I find it easier to
         // modify this stuff as code.
         self.menuAbout?.setImageIfDesired(systemSymbolName: "info.circle")
-        self.menuCheckForUpdates?.setImageIfDesired(systemSymbolName: "square.and.arrow.down")
         self.menuOpenConfig?.setImageIfDesired(systemSymbolName: "gear")
         self.menuReloadConfig?.setImageIfDesired(systemSymbolName: "arrow.trianglehead.2.clockwise.rotate.90")
         self.menuSecureInput?.setImageIfDesired(systemSymbolName: "lock.display")
@@ -1134,7 +1089,6 @@ extension AppDelegate {
 
         menuShortcutManager.reset()
 
-        syncMenuShortcut(config, action: "check_for_updates", menuItem: self.menuCheckForUpdates)
         syncMenuShortcut(config, action: "open_config", menuItem: self.menuOpenConfig)
         syncMenuShortcut(config, action: "reload_config", menuItem: self.menuReloadConfig)
         syncMenuShortcut(config, action: "quit", menuItem: self.menuQuit)

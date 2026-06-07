@@ -142,17 +142,6 @@ class TerminalWindow: NSWindow {
                 }))
             addTitlebarAccessoryViewController(resetZoomAccessory)
             resetZoomAccessory.view.translatesAutoresizingMaskIntoConstraints = false
-
-            // Create update notification accessory
-            if supportsUpdateAccessory {
-                updateAccessory.layoutAttribute = .right
-                updateAccessory.view = NonDraggableHostingView(rootView: UpdateAccessoryView(
-                    viewModel: viewModel,
-                    model: appDelegate.updateViewModel
-                ))
-                addTitlebarAccessoryViewController(updateAccessory)
-                updateAccessory.view.translatesAutoresizingMaskIntoConstraints = false
-            }
         }
 
         // Setup the accessory view for tabs that shows our keyboard shortcuts,
@@ -314,9 +303,6 @@ class TerminalWindow: NSWindow {
         if let idx = titlebarAccessoryViewControllers.firstIndex(of: resetZoomAccessory) {
             removeTitlebarAccessoryViewController(at: idx)
         }
-
-        // We don't need to do this with the update accessory. I don't know why but
-        // everything works fine.
     }
 
     private func tabBarDidDisappear() {
@@ -661,19 +647,6 @@ extension TerminalWindow {
                 // We always need space at the end of the titlebar
                 .padding(.trailing, 10)
             }
-        }
-    }
-
-    /// A pill-shaped button that displays update status and provides access to update actions.
-    struct UpdateAccessoryView: View {
-        @ObservedObject var viewModel: ViewModel
-        @ObservedObject var model: UpdateViewModel
-
-        var body: some View {
-            // We use the same top/trailing padding so that it hugs the same.
-            UpdatePill(model: model)
-                .padding(.top, viewModel.accessoryTopPadding)
-                .padding(.trailing, viewModel.accessoryTopPadding)
         }
     }
 

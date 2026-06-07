@@ -1084,11 +1084,7 @@ class BaseTerminalController: NSWindowController,
         // When we enter fullscreen, we want to show the update overlay so that it
         // is easily visible. For native fullscreen this is visible by showing the
         // menubar but we don't want to rely on that.
-        if fullscreenStyle.isFullscreen {
-            updateOverlayIsVisible = true
-        } else {
-            updateOverlayIsVisible = defaultUpdateOverlayVisibility()
-        }
+            fullscreenStyle.isFullscreen ? (updateOverlayIsVisible = true) : (updateOverlayIsVisible = defaultUpdateOverlayVisibility())
 
         // Always resync our appearance
         syncAppearance()
